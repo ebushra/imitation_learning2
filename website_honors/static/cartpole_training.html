@@ -1,0 +1,261 @@
+/* This is the training module for CartPole. It include two sessions that have 
+increased boundaries for the pole. The user must pass both sessions to continue to the full game.
+
+NOTE: This game was removed from the main interface due to difficulty. */
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>CartPole Training</title>
+<style>
+body { text-align: center; font-family: sans-serif; margin-top: 20px; }
+.game-container { display: inline-block; border: 2px solid black; padding: 8px; position: relative; }
+img, canvas { display: block; }
+button { padding: 8px 16px; margin: 8px; font-size: 16px; cursor: pointer; }
+#timer { margin-top: 8px; font-size: 16px; }
+#stageInfo { font-size: 16px; margin-top: 8px; font-weight: bold; }
+#laps { font-size: 14px; margin-top: 8px; }
+.instructions { font-size: 12px; max-width: 420px; margin: 10px auto; text-align: left; }
+
+#instructionsModal {
+    position: fixed; top:0; left:0; width:100%; height:100%;
+    background: rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center;
+    z-index:10;
+}
+#instructionsModalContent {
+    background: white; padding: 20px; border-radius: 6px; max-width: 400px; text-align: left;
+}
+#instructionsModal button { display: block; margin: 10px auto 0 auto; }
+</style>
+</head>
+<body>
+
+<div id="instructionsModal">
+    <div id="instructionsModalContent">
+        <h3>CartPole Training Instructions</h3>
+        <p><strong>Goal:</strong> Complete each stage by holding the pole within the allowed angle.</p>
+        <p><strong>Controls:</strong> Use Left/Right Arrow keys to move the cart.</p>
+        <p><strong>Hint:</strong> Quickly alternate between the left and right arrow keys. Remember, your
+        actions move the cart, not the pole, so if your pole is leaning to the right, try to push the cart to the
+        right, and vice versa.</p>
+        <button id="startTrainingBtn">Start Training</button>
+    </div>
+</div>
+
+<h2>CartPole Training</h2>
+
+<div class="game-container" style="width:400px; height:300px;">
+    <canvas id="overlay" width="400" height="300"></canvas>
+</div>
+
+<h3 id="timer">Time: 0.0 s</h3>
+<h3 id="stageInfo"></h3>
+<div id="laps"></div>
+
+<div class="instructions">
+    <p><strong>Goal:</strong> Complete each stage by holding the pole within the allowed angle.</p>
+    <p><strong>Controls:</strong> Left/Right Arrow keys.</p>
+    <p><strong>Hint:</strong> Small corrections are key! Remember, your
+        actions move the cart, not the pole, so if your pole is leaning to the right, try to push the cart to the
+        right, and vice versa.</p>
+</div>
+
+<button id="resetBtn">Restart Stage</button>
+<button onclick="location.href='/index.html'">⬅ Back to Menu</button>
+
+<script>
+const API_BASE = "/cartpole";
+const overlay = document.getElementById("overlay");
+const resetBtn = document.getElementById("resetBtn");
+
+let keys = { ArrowLeft: false, ArrowRight: false };
+document.addEventListener("keydown", e => { if(e.key in keys) keys[e.key] = true; });
+document.addEventListener("keyup", e => { if(e.key in keys) keys[e.key] = false; });
+
+let stageStartTime = null;
+let laps = [];
+let trainingPassed = false;
+let stageIndex = 0;
+
+const TRAINING_STAGES = [
+    { angle: 20, duration: 30 },
+    { angle: 15, duration: 30 }
+];
+
+function getAction() {
+    if (keys.ArrowLeft) return 2;
+    if (keys.ArrowRight) return 1;
+    return 0;
+}
+
+function getCurrentTime() {
+    return stageStartTime ? (performance.now() - stageStartTime)/1000 : 0;
+}
+
+function updateTimerDisplay() {
+    document.getElementById("timer").textContent =
+        "Time: " + Math.floor(getCurrentTime()) + " s";
+}
+
+function recordLap(time) {
+    laps.push(time);
+    document.getElementById("laps").innerHTML = laps.map((t,i)=>`Round ${i+1}: ${t.toFixed(1)} s`).join("<br>");
+}
+
+function updateStageText() {
+    const s = TRAINING_STAGES[stageIndex];
+    document.getElementById("stageInfo").textContent =
+        `Stage ${stageIndex+1}: Hold within ±${s.angle}° for ${s.duration}s`;
+}
+
+async function resetStage() {
+    // Clear keys to prevent “stuck” presses
+    keys.ArrowLeft = false;
+    keys.ArrowRight = false;
+
+    const res = await fetch(`${API_BASE}/reset`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ training: true }),
+        credentials: "include"
+    });
+    const data = await res.json();
+    drawCartPole(overlay, data.state);
+    stageStartTime = performance.now();
+    updateStageText();
+}
+
+async function step() {
+    if (trainingPassed) return;
+
+    const action = getAction();
+    const res = await fetch(`${API_BASE}/step/${action}`, {
+        method:"POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({}),
+        credentials: "include"
+    });
+    const data = await res.json();
+    
+    overlay.getContext("2d").clearRect(0,0,overlay.width,overlay.height);
+    drawCartPole(overlay, data.state);
+    drawGauge(overlay, data.state[2], data.state[0]);
+    updateTimerDisplay();
+    updateStageText();
+
+    const stage = TRAINING_STAGES[stageIndex];
+    if (Math.abs(data.state[2]) * 180/Math.PI > stage.angle) {
+        alert(`Exceeded ±${stage.angle}°. Restarting stage.`);
+        await resetStage();
+        return;
+    }
+
+    if(getCurrentTime() >= stage.duration){
+        stageIndex++;
+        if(stageIndex >= TRAINING_STAGES.length){
+            trainingPassed = true;
+            localStorage.setItem("cartpoleUnlocked","true");
+            alert("Training complete! Challenge unlocked.");
+            window.location.href = "/static/cartpole.html";
+            return;
+        } else {
+            alert(`Stage ${stageIndex+1} unlocked!`);
+            await resetStage();
+        }
+    }
+}
+
+function drawCartPole(canvas, state) {
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width;
+    const h = canvas.height;
+    const x = state[0];
+    const theta = state[2];
+
+    const worldWidth = 4.8;
+    const pixelsPerMeter = w / worldWidth;
+
+    const cartY = 220;
+    const cartWidth = 50;
+    const cartHeight = 25;
+    const cartX = (w/2) + x * pixelsPerMeter;
+
+    // Track
+    ctx.beginPath();
+    ctx.moveTo(0, cartY + cartHeight/2);
+    ctx.lineTo(w, cartY + cartHeight/2);
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Cart
+    ctx.fillStyle = "black";
+    ctx.fillRect(cartX - cartWidth/2, cartY - cartHeight/2, cartWidth, cartHeight);
+
+    // Pole
+    const poleLength = 100;
+    const poleX = cartX;
+    const poleY = cartY - cartHeight/2;
+    const tipX = poleX + poleLength * Math.sin(theta);
+    const tipY = poleY - poleLength * Math.cos(theta);
+
+    ctx.beginPath();
+    ctx.moveTo(poleX, poleY);
+    ctx.lineTo(tipX, tipY);
+    ctx.strokeStyle = "red";
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    // Pivot
+    ctx.beginPath();
+    ctx.arc(poleX, poleY, 4, 0, Math.PI*2);
+    ctx.fill();
+}
+
+function drawGauge(canvas, theta, cartX) {
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width;
+    const worldWidth = 4.8;
+    const pixelsPerMeter = w / worldWidth;
+    const cartPixelX = (w/2) + cartX*pixelsPerMeter;
+
+    const pivotX = cartPixelX;
+    const pivotY = 200;
+    const radius = 80;
+    const safeAngle = TRAINING_STAGES[stageIndex].angle * Math.PI/180;
+
+    // Red semi-circle
+    ctx.beginPath();
+    ctx.arc(pivotX, pivotY, radius, Math.PI, 0);
+    ctx.strokeStyle = "rgba(255,0,0,0.35)";
+    ctx.lineWidth = 6;
+    ctx.stroke();
+
+    // Green safe-angle overlay
+    ctx.beginPath();
+    ctx.arc(pivotX, pivotY, radius, -Math.PI/2 - safeAngle, -Math.PI/2 + safeAngle);
+    ctx.strokeStyle = "rgba(0,255,0,0.5)";
+    ctx.lineWidth = 6;
+    ctx.stroke();
+}
+
+// Game loop
+async function gameLoop() {
+    await step();
+    if(!trainingPassed) requestAnimationFrame(gameLoop);
+}
+
+// Start button
+document.getElementById("startTrainingBtn").addEventListener("click", async () => {
+    document.getElementById("instructionsModal").style.display = "none";
+    await resetStage();
+    requestAnimationFrame(gameLoop);
+});
+
+// Reset button
+resetBtn.addEventListener("click", async () => {
+    await resetStage();
+});
+</script>
+</body>
+</html>
