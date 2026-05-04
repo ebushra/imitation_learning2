@@ -1,6 +1,55 @@
-'''
-This is the main file that controls each game and the data logging.
-'''
+"""
+Web RL Environment Server
+
+This module defines a Flask-based backend server for hosting and
+interacting with multiple reinforcement learning environments
+(Acrobot, MountainCar, and CartPole) through HTTP endpoints.
+
+Core Features:
+- REST API endpoints for resetting and stepping through environments
+- Per-user session management using Flask sessions and UUIDs
+- Persistent environment instances tied to individual users
+- Automated gameplay logging to CSV for later analysis
+- Frame rendering support for frontend visualization
+- Support for both normal and training modes in environments
+
+Data Collection:
+- Each user is assigned a unique session ID
+- Gameplay data is recorded per environment into CSV files
+- Logged fields include:
+    • user_id, episode, step index, timestamp
+    • action, reward, done flag, success flag
+    • training mode indicator
+    • full environment state
+- Files are incrementally flushed to prevent data loss
+
+Environment Management:
+- Separate environment instances are maintained per session
+- Supported environments:
+    • WebAcrobot
+    • WebMountainCar
+    • WebCartPole
+- Environments can be reset, stepped, or fully recreated
+
+API Overview:
+- `/get_session_id` → returns current user session ID
+- `/[env]/reset` → resets a specific environment
+- `/[env]/step` → advances environment by one action
+- `/mountaincar/newsession` → reinitializes MountainCar
+- Static file serving for frontend UI
+- CSV download endpoint for collected data
+
+Rendering:
+- Environments render frames as RGB arrays
+- Frames are processed for frontend delivery (e.g., base64 encoding)
+
+Dependencies:
+- flask
+- gymnasium
+- numpy
+- pillow (PIL)
+- csv, time, uuid, os
+"""
 
 import os
 os.environ["SDL_VIDEODRIVER"] = "dummy"
