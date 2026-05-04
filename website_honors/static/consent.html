@@ -1,0 +1,130 @@
+/* FILL IN YOUR CONSENT FORM HERE IF PERFORMING RESEARCH */
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Research Consent Form</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      line-height: 1.5;
+      background: #f9f9f9;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 6px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      text-align: center;
+    }
+
+    .section {
+      margin-top: 20px;
+    }
+
+    .buttons {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 10px;
+      cursor: pointer;
+    }
+
+    .agree {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+    }
+
+    .decline {
+      background-color: #f44336;
+      color: white;
+      border: none;
+    }
+
+    .scroll-box {
+      max-height: 500px;
+      overflow-y: scroll;
+      border: 1px solid #ccc;
+      padding: 15px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+  <h2>Consent to Participate in Research</h2>
+
+  <div class="scroll-box">
+
+    <div class="section">
+      <h3>1. Summary of the Research</h3>
+  
+    </div>
+
+    <div class="section">
+      <h3>2. Why is this research being done?</h3>
+    </div>
+
+    <div class="section">
+      <h3>3. Duration</h3>
+    </div>
+
+    <div class="section">
+      <h3>4. What will happen if I take part?</h3>
+    </div>
+
+    <div class="section">
+      <h3>5. Risks</h3>
+    </div>
+
+    <div class="section">
+      <h3>6. Privacy</h3>
+    </div>
+
+    <div class="section">
+      <h3>7. Voluntary Participation</h3>
+    </div>
+
+    <div class="section">
+      <h3>8. Contact</h3>
+    </div>
+
+    <div class="section">
+      <h3>Statement of Consent</h3>
+      <p>By agreeing, you confirm that you are 18+, have read this form, and voluntarily agree to participate.</p>
+    </div>
+
+  </div>
+
+  <div class="buttons">
+    <button class="agree" onclick="agree()">I Agree</button>
+    <button class="decline" onclick="decline()">I Do Not Agree</button>
+  </div>
+</div>
+
+<script>
+function agree() {
+  localStorage.setItem("consentGiven", "true");
+  window.location.href = "/static/acrobot_training.html";
+}
+
+function decline() {
+  alert("You must agree to participate to continue.");
+}
+</script>
+
+</body>
+</html>
