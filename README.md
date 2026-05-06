@@ -4,7 +4,7 @@ This project runs two OpenAIGym games - MountainCar and Acrobot - for data colle
 This project is able to be deployed on Render using the following commands:
 Repository
 The repository used for your Web Service.
-https://github.com/ebushra/imitation_learning_
+https://github.com/ebushra/imitation_learning2
 
 
 Branch
