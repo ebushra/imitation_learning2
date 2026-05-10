@@ -5,3 +5,5 @@ pillow
 gymnasium[classic-control]
 Flask
 gunicorn
+scikit-learn
+pandas
